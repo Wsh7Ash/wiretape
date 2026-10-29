@@ -1,0 +1,19 @@
+{
+  "pack": "wiretape",
+  "version": "1.0.0",
+  "expected_skills": 50,
+  "checked": 50,
+  "valid": 50,
+  "passed": true,
+  "floors": {
+    "min_steps": 6,
+    "min_signals": 4,
+    "min_patterns": 3,
+    "min_pitfalls": 3,
+    "min_done_when": 2,
+    "min_summary_chars": 40,
+    "min_words": 180,
+    "max_description_chars": 1024
+  },
+  "issues": []
+}

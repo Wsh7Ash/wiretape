@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "name": "demo-order-flow",
+  "description": "Login, read an order as the owner, prove /admin is refused for this role, then clean up. Run against examples/demo_server.py.",
+  "origin": "http://127.0.0.1:8080",
+  "scope": ["127.0.0.1"],
+  "variables": {},
+  "steps": [
+    {
+      "id": "login",
+      "name": "obtain a session token",
+      "request": {
+        "method": "GET",
+        "target": "/session",
+        "headers": [["Accept", "application/json"]]
+      },
+      "extract": {
+        "token": { "from": "body", "regex": "\"access_token\": \"([^\"]+)\"" },
+        "session": { "from": "header", "header": "Set-Cookie", "required": false }
+      },
+      "expect": { "status": [200], "contains": "demo-hunter" }
+    },
+    {
+      "id": "read-own-order",
+      "name": "read the owner's order with the extracted token",
+      "request": {
+        "method": "GET",
+        "target": "/orders/42",
+        "headers": [["Authorization", "Bearer {{token}}"], ["Accept", "application/json"]]
+      },
+      "extract": {
+        "order_id": { "from": "body", "regex": "\"id\": \"([^\"]+)\"" }
+      },
+      "expect": { "status": [200], "contains": "\"status\": \"created\"" }
+    },
+    {
+      "id": "attempt-admin",
+      "name": "confirm this role cannot reach the admin route",
+      "request": {
+        "method": "GET",
+        "target": "/admin",
+        "headers": [["Authorization", "Bearer {{token}}"]]
+      },
+      "expect": { "status": [403], "contains": "role required" }
+    },
+    {
+      "id": "cleanup-order",
+      "name": "delete the object this tape touched",
+      "request": {
+        "method": "DELETE",
+        "target": "/orders/{{order_id}}",
+        "headers": [["Authorization", "Bearer {{token}}"]]
+      },
+      "expect": { "status": [204] }
+    },
+    {
+      "id": "confirm-deleted",
+      "name": "prove the cleanup happened",
+      "request": {
+        "method": "GET",
+        "target": "/orders/{{order_id}}",
+        "headers": [["Authorization", "Bearer {{token}}"]]
+      },
+      "expect": { "status": [404] }
+    },
+    {
+      "id": "digest-capture",
+      "kind": "shell",
+      "name": "hash the login capture for the evidence trail",
+      "command": "python -c \"import hashlib,pathlib;print(hashlib.sha256(pathlib.Path('captures/login.response.http').read_bytes()).hexdigest()[:16])\"",
+      "expect": {}
+    }
+  ]
+}
